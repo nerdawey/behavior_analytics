@@ -76,17 +76,6 @@ module BehaviorAnalytics
       end
 
       event = Event.new(event_data)
-        tenant_id: context.tenant_id,
-        user_id: context.user_id,
-        user_type: context.user_type,
-        event_name: event_name,
-        event_type: event_type,
-        metadata: metadata.merge(context.filters),
-        session_id: options[:session_id],
-        ip: options[:ip],
-        user_agent: options[:user_agent],
-        duration_ms: options[:duration_ms]
-      )
 
       # Execute before_track hooks
       begin

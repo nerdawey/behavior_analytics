@@ -3,7 +3,7 @@
 class CreateBehaviorEvents < ActiveRecord::Migration[<%= ActiveRecord::Migration.current_version %>]
   def change
     create_table :behavior_events do |t|
-      t.string :tenant_id, null: false
+      t.string :tenant_id  # Nullable to support single-tenant and API-only tracking
       t.string :user_id
       t.string :user_type
       t.string :event_name, null: false
@@ -16,7 +16,7 @@ class CreateBehaviorEvents < ActiveRecord::Migration[<%= ActiveRecord::Migration
       t.datetime :created_at, null: false
     end
 
-    add_index :behavior_events, :tenant_id
+    add_index :behavior_events, :tenant_id  # Index even if nullable for multi-tenant queries
     add_index :behavior_events, :user_id
     add_index :behavior_events, :user_type
     add_index :behavior_events, :event_name
