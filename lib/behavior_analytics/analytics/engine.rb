@@ -10,6 +10,9 @@ module BehaviorAnalytics
     class Engine
       def initialize(storage_adapter)
         @storage_adapter = storage_adapter
+        @funnels = nil
+        @cohorts = nil
+        @retention = nil
       end
 
       def event_count(context, options = {})
@@ -122,6 +125,18 @@ module BehaviorAnalytics
         limit = options.delete(:limit) || 10
         stats = feature_usage_stats(context, options)
         stats.sort_by { |_feature, count| -count }.first(limit).to_h
+      end
+
+      def funnels
+        @funnels ||= Funnels.new(@storage_adapter)
+      end
+
+      def cohorts
+        @cohorts ||= Cohorts.new(@storage_adapter)
+      end
+
+      def retention
+        @retention ||= Retention.new(@storage_adapter)
       end
 
       private
