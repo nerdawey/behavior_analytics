@@ -95,7 +95,7 @@ module BehaviorAnalytics
                   :hooks_manager, :raise_on_hook_error, :sampling_strategy, :rate_limiter,
                   :schema_validator, :schema_registry, :tracking_whitelist, :tracking_blacklist,
                   :skip_bots, :controller_action_filters, :slow_query_threshold, :track_middleware_requests,
-                  :metrics, :tracer, :debug_mode, :logger
+                  :metrics, :tracer, :debug_mode, :logger, :default_tenant_id
 
     def initialize
       @batch_size = 100
@@ -123,6 +123,7 @@ module BehaviorAnalytics
       @tracer = nil
       @debug_mode = @environment == "development"
       @logger = nil
+      @default_tenant_id = "default" # Default tenant for single-tenant systems
     end
 
     def debug(message, context: nil)

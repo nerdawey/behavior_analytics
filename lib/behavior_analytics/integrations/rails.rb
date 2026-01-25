@@ -70,8 +70,18 @@ module BehaviorAnalytics
             user_id: current_user&.id,
             user_type: current_user&.account_type || current_user&.user_type
           )
+        elsif respond_to?(:current_user, true)
+          # Single-tenant system - use default tenant
+          Context.new(
+            tenant_id: BehaviorAnalytics.configuration.default_tenant_id,
+            user_id: current_user&.id,
+            user_type: current_user&.account_type || current_user&.user_type
+          )
         else
-          nil
+          # No user context - use default tenant
+          Context.new(
+            tenant_id: BehaviorAnalytics.configuration.default_tenant_id
+          )
         end
       end
 

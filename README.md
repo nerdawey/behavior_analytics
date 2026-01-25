@@ -106,9 +106,15 @@ end
 # Create a tracker
 tracker = BehaviorAnalytics.create_tracker
 
-# Create a context
+# Create a context (multi-tenant)
 context = BehaviorAnalytics::Context.new(
   tenant_id: "org_123",
+  user_id: "user_456",
+  user_type: "trial"
+)
+
+# Or for single-tenant systems (uses default_tenant_id)
+context = BehaviorAnalytics::Context.new(
   user_id: "user_456",
   user_type: "trial"
 )
@@ -215,6 +221,7 @@ tracker = BehaviorAnalytics.create_tracker(
 - `flush_interval`: Seconds between automatic flushes (default: 300)
 - `context_resolver`: Lambda/proc to resolve context from requests
 - `scoring_weights`: Hash of weights for engagement scoring
+- `default_tenant_id`: Default tenant ID for single-tenant systems (default: "default")
 
 ## Event Types
 
@@ -226,10 +233,35 @@ tracker = BehaviorAnalytics.create_tracker(
 
 The `Context` class encapsulates tracking context:
 
-- `tenant_id` (required) - Multi-tenant identifier
+- `tenant_id` (optional) - Multi-tenant identifier. If not provided, uses `default_tenant_id` from configuration
 - `user_id` (optional) - User identifier
 - `user_type` (optional) - User type (e.g., "trial", "premium", "admin")
 - `filters` (optional) - Hash of custom filter criteria
+
+### Single-Tenant Systems
+
+For systems that don't support multi-tenancy, you can set a default tenant ID:
+
+```ruby
+BehaviorAnalytics.configure do |config|
+  config.default_tenant_id = "global" # or "default", "single", etc.
+  # ... other configuration
+end
+```
+
+Now you can track events without specifying a tenant_id:
+
+```ruby
+context = BehaviorAnalytics::Context.new(
+  user_id: current_user.id
+  # tenant_id will automatically use "global"
+)
+
+tracker.track(
+  context: context,
+  event_name: "page_view"
+)
+```
 
 ## Development
 
