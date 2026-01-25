@@ -27,6 +27,8 @@ module BehaviorAnalytics
             ip: event_hash[:ip],
             user_agent: event_hash[:user_agent],
             duration_ms: event_hash[:duration_ms],
+            visit_id: event_hash[:visit_id],
+            visitor_id: event_hash[:visitor_id],
             created_at: event_hash[:created_at] || (defined?(Time.current) ? Time.current : Time.now)
           }
         end
@@ -34,6 +36,69 @@ module BehaviorAnalytics
         @model_class.insert_all(records)
       rescue StandardError => e
         raise Error, "Failed to save events: #{e.message}"
+      end
+
+      def save_visit(visit_data)
+        return unless defined?(BehaviorAnalyticsVisit)
+        
+        visit_model = BehaviorAnalyticsVisit
+        visit_hash = visit_data.is_a?(Hash) ? visit_data : visit_data.to_h
+        
+        visit = visit_model.find_or_initialize_by(visit_token: visit_hash[:visit_token])
+        visit.assign_attributes(visit_hash.except(:visit_token))
+        visit.save!
+      rescue StandardError => e
+        raise Error, "Failed to save visit: #{e.message}"
+      end
+
+      def find_active_visit(visitor_token, user_id = nil, visit_duration = 30.minutes)
+        return nil unless defined?(BehaviorAnalyticsVisit)
+        
+        visit_model = BehaviorAnalyticsVisit
+        query = visit_model.where(visitor_token: visitor_token)
+                          .where(ended_at: nil)
+                          .where("started_at > ?", visit_duration.ago)
+        
+        query = query.where(user_id: user_id) if user_id
+        visit = query.order(started_at: :desc).first
+        
+        visit&.attributes&.symbolize_keys
+      end
+
+      def find_visit_by_token(visit_token)
+        return nil unless defined?(BehaviorAnalyticsVisit)
+        
+        visit_model = BehaviorAnalyticsVisit
+        visit = visit_model.find_by(visit_token: visit_token)
+        visit&.attributes&.symbolize_keys
+      end
+
+      def link_user_to_visits(visitor_token, user_id)
+        return unless defined?(BehaviorAnalyticsVisit)
+        
+        visit_model = BehaviorAnalyticsVisit
+        visit_model.where(visitor_token: visitor_token, user_id: nil)
+                   .update_all(user_id: user_id, updated_at: Time.current)
+      end
+
+      def find_visits_by_user(user_id, limit: 100)
+        return [] unless defined?(BehaviorAnalyticsVisit)
+        
+        visit_model = BehaviorAnalyticsVisit
+        visits = visit_model.where(user_id: user_id)
+                           .order(started_at: :desc)
+                           .limit(limit)
+        visits.map(&:attributes).map(&:symbolize_keys)
+      end
+
+      def find_visits_by_visitor(visitor_token, limit: 100)
+        return [] unless defined?(BehaviorAnalyticsVisit)
+        
+        visit_model = BehaviorAnalyticsVisit
+        visits = visit_model.where(visitor_token: visitor_token)
+                           .order(started_at: :desc)
+                           .limit(limit)
+        visits.map(&:attributes).map(&:symbolize_keys)
       end
 
       def events_for_context(context, options = {})
@@ -140,6 +205,29 @@ module BehaviorAnalytics
 
       def delete_old_events(before_date)
         @model_class.where("created_at < ?", before_date).delete_all
+      end
+
+      def delete_old_visits(before_date)
+        return 0 unless defined?(BehaviorAnalyticsVisit)
+        
+        visit_model = BehaviorAnalyticsVisit
+        visit_model.where("started_at < ?", before_date).delete_all
+      end
+
+      def query_visits(context, options = {})
+        return [] unless defined?(BehaviorAnalyticsVisit)
+        
+        visit_model = BehaviorAnalyticsVisit
+        query = visit_model.all
+        
+        query = query.where(tenant_id: context.tenant_id) if context.has_tenant?
+        query = query.where(user_id: context.user_id) if context.has_user?
+        
+        query = query.where("started_at >= ?", options[:since]) if options[:since]
+        query = query.where("started_at <= ?", options[:until]) if options[:until]
+        query = query.limit(options[:limit]) if options[:limit]
+        
+        query.map(&:attributes).map(&:symbolize_keys)
       end
 
       def event_count(context, options = {})

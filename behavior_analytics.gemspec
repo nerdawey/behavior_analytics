@@ -8,10 +8,11 @@ Gem::Specification.new do |spec|
   spec.authors = ["nerdawey"]
   spec.email = ["nerdawy@icloud.com"]
 
-  spec.summary = "Track user behavior events with flexible context filtering and comprehensive analytics"
-  spec.description = "A Ruby gem for tracking user behavior events with multi-tenant support, " \
-                     "computing analytics (engagement scores, time-based trends, feature usage), " \
-                     "and supporting API calls, feature usage, and custom events."
+  spec.summary = "Track user behavior events with visit tracking, device detection, and comprehensive analytics"
+  spec.description = "A comprehensive Ruby gem for tracking user behavior events with multi-tenant support, " \
+                     "visit/session management, device & browser detection, geographic analytics, " \
+                     "referrer tracking, and advanced analytics (engagement scores, funnels, cohorts, retention). " \
+                     "Supports API calls, feature usage, custom events, and JavaScript client-side tracking."
   spec.homepage = "https://github.com/nerdawey/behavior_analytics"
   spec.license = "MIT"
   spec.required_ruby_version = ">= 3.0.0"

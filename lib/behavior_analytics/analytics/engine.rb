@@ -13,6 +13,8 @@ module BehaviorAnalytics
         @funnels = nil
         @cohorts = nil
         @retention = nil
+        @geographic = nil
+        @referrer = nil
       end
 
       def event_count(context, options = {})
@@ -137,6 +139,14 @@ module BehaviorAnalytics
 
       def retention
         @retention ||= Retention.new(@storage_adapter)
+      end
+
+      def geographic
+        @geographic ||= Geographic.new(storage_adapter: @storage_adapter)
+      end
+
+      def referrer
+        @referrer ||= Referrer.new(storage_adapter: @storage_adapter)
       end
 
       private

@@ -21,6 +21,7 @@ module BehaviorAnalytics
       @schema_validator = options[:schema_validator] || BehaviorAnalytics.configuration.schema_validator
       @metrics = options[:metrics] || BehaviorAnalytics.configuration.metrics || Observability::Metrics.new
       @tracer = options[:tracer] || BehaviorAnalytics.configuration.tracer
+      @visit_manager = options[:visit_manager]
 
       @buffer = []
       @mutex = Mutex.new
@@ -64,7 +65,9 @@ module BehaviorAnalytics
         session_id: options[:session_id],
         ip: options[:ip],
         user_agent: options[:user_agent],
-        duration_ms: options[:duration_ms]
+        duration_ms: options[:duration_ms],
+        visit_id: options[:visit_id],
+        visitor_id: options[:visitor_id]
       }
 
       # Validate schema if validator is configured

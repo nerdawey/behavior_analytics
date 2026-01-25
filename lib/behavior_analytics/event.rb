@@ -7,7 +7,8 @@ module BehaviorAnalytics
     EVENT_TYPES = %i[api_call feature_usage custom].freeze
 
     attr_accessor :id, :tenant_id, :user_id, :user_type, :event_name, :event_type,
-                  :metadata, :session_id, :ip, :user_agent, :duration_ms, :created_at
+                  :metadata, :session_id, :ip, :user_agent, :duration_ms, :created_at,
+                  :visit_id, :visitor_id
 
     def initialize(attributes = {})
       @id = attributes[:id] || SecureRandom.uuid
@@ -21,6 +22,8 @@ module BehaviorAnalytics
       @ip = attributes[:ip]
       @user_agent = attributes[:user_agent]
       @duration_ms = attributes[:duration_ms]
+      @visit_id = attributes[:visit_id]
+      @visitor_id = attributes[:visitor_id]
       @created_at = attributes[:created_at] || Time.now
 
       validate!
@@ -39,6 +42,8 @@ module BehaviorAnalytics
         ip: ip,
         user_agent: user_agent,
         duration_ms: duration_ms,
+        visit_id: visit_id,
+        visitor_id: visitor_id,
         created_at: created_at
       }
     end

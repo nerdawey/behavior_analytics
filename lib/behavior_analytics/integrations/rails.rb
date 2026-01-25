@@ -26,34 +26,6 @@ module BehaviorAnalytics
 
       private
 
-      def track_behavior_analytics
-        start_time = Time.current
-        yield
-      ensure
-        if should_track?
-          context = resolve_tracking_context
-          if context&.valid?
-            duration_ms = ((Time.current - start_time) * 1000).to_i
-
-            behavior_tracker.track_api_call(
-              context: context,
-              method: request.method,
-              path: request.path,
-              status_code: response.status,
-              duration_ms: duration_ms,
-              ip: request.remote_ip,
-              user_agent: request.user_agent,
-              session_id: session.id,
-              metadata: {
-                controller: controller_name,
-                action: action_name,
-                format: request.format.to_s
-              }
-            )
-          end
-        end
-      end
-
       def behavior_tracker
         @behavior_tracker ||= BehaviorAnalytics.create_tracker(
           storage_adapter: BehaviorAnalytics.configuration.storage_adapter
@@ -180,6 +152,25 @@ module BehaviorAnalytics
               end
             end
 
+            # Get or create visit if visit tracking is enabled
+            visit = nil
+            visitor_id = nil
+            if BehaviorAnalytics.configuration.track_visits && visit_manager
+              begin
+                visit = visit_auto_creator.get_or_create_visit(
+                  request: request,
+                  tenant_id: context.tenant_id,
+                  user_id: context.user_id
+                )
+                visitor_id = visit.visitor_token
+                
+                # Set visitor token cookie
+                visit_auto_creator.set_visitor_token_cookie(response, visitor_id) if respond_to?(:response)
+              rescue StandardError => e
+                BehaviorAnalytics.configuration.log_error(e, context: { action: "visit_creation" })
+              end
+            end
+
             behavior_tracker.track_api_call(
               context: context,
               method: request.method,
@@ -189,6 +180,8 @@ module BehaviorAnalytics
               ip: request.remote_ip,
               user_agent: request.user_agent,
               session_id: session.id,
+              visit_id: visit&.visit_token,
+              visitor_id: visitor_id,
               metadata: {
                 controller: controller_name,
                 action: action_name,
@@ -199,6 +192,30 @@ module BehaviorAnalytics
             )
           end
         end
+      end
+
+      def visit_manager
+        return nil unless BehaviorAnalytics.configuration.track_visits
+        @visit_manager ||= begin
+          device_detector = if BehaviorAnalytics.configuration.track_device_info
+            Detection::DeviceDetector.new(strategy: BehaviorAnalytics.configuration.device_detector)
+          end
+          
+          geolocation = if BehaviorAnalytics.configuration.track_geolocation
+            Detection::Geolocation.new(strategy: :geocoder)
+          end
+          
+          Visits::Manager.new(
+            storage_adapter: @behavior_tracker&.storage_adapter || BehaviorAnalytics.configuration.storage_adapter,
+            visit_duration: BehaviorAnalytics.configuration.visit_duration || 30.minutes,
+            device_detector: device_detector,
+            geolocation: geolocation
+          )
+        end
+      end
+
+      def visit_auto_creator
+        @visit_auto_creator ||= Visits::AutoCreator.new(manager: visit_manager)
       end
 
       def log_slow_query(duration_ms, path)
