@@ -46,7 +46,13 @@ module BehaviorAnalytics
     private
 
     def validate!
-      raise Error, "tenant_id is required" if tenant_id.nil? || tenant_id.empty?
+      # tenant_id is optional - events can be tracked without tenant for non-multi-tenant systems
+      # At least one identifier should be present (tenant_id, user_id, or session_id)
+      has_identifier = (!tenant_id.nil? && !tenant_id.to_s.empty?) ||
+                       (!user_id.nil? && !user_id.to_s.empty?) ||
+                       (!session_id.nil? && !session_id.to_s.empty?)
+      
+      raise Error, "Event must have at least one identifier (tenant_id, user_id, or session_id)" unless has_identifier
       raise Error, "event_name is required" if event_name.nil? || event_name.empty?
       raise Error, "event_type must be one of: #{EVENT_TYPES.join(', ')}" unless EVENT_TYPES.include?(event_type)
     end

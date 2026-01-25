@@ -143,9 +143,26 @@ module BehaviorAnalytics
 
       def filter_by_context(events, context)
         events.select do |event|
-          matches_tenant = event[:tenant_id] == context.tenant_id
-          matches_user = context.user_id.nil? || event[:user_id] == context.user_id || event[:user_id].nil?
-          matches_user_type = context.user_type.nil? || event[:user_type] == context.user_type || event[:user_type].nil?
+          # Support different business cases:
+          # - Multi-tenant: must match tenant_id
+          # - Single-tenant: match user_id (tenant_id may be nil)
+          # - API-only: no strict matching required
+          
+          matches_tenant = if context.has_tenant?
+            event[:tenant_id] == context.tenant_id
+          else
+            true # No tenant filter if context doesn't have tenant
+          end
+          
+          matches_user = if context.has_user?
+            event[:user_id] == context.user_id
+          else
+            true # No user filter if context doesn't have user
+          end
+          
+          matches_user_type = context.user_type.nil? || 
+                              event[:user_type] == context.user_type || 
+                              event[:user_type].nil?
           
           matches_tenant && matches_user && matches_user_type
         end

@@ -36,7 +36,15 @@ module BehaviorAnalytics
         
         # Kafka is primarily for streaming, so we need a consumer
         # This is a simplified version - in production you'd use a proper consumer group
-        consumer = @kafka.consumer(group_id: "behavior_analytics_#{context.tenant_id}")
+        group_id = if context.has_tenant?
+          "behavior_analytics_#{context.tenant_id}"
+        elsif context.has_user?
+          "behavior_analytics_user_#{context.user_id}"
+        else
+          "behavior_analytics_global"
+        end
+        
+        consumer = @kafka.consumer(group_id: group_id)
         consumer.subscribe(@topic)
         
         events = []
@@ -88,8 +96,15 @@ module BehaviorAnalytics
       end
 
       def matches_context?(event, context, options)
-        return false unless event[:tenant_id] == context.tenant_id
-        return false if context.user_id && event[:user_id] != context.user_id
+        # Support different business cases
+        if context.has_tenant?
+          return false unless event[:tenant_id] == context.tenant_id
+        end
+        
+        if context.has_user?
+          return false unless event[:user_id] == context.user_id
+        end
+        
         return false if context.user_type && event[:user_type] != context.user_type
         return false if options[:event_name] && event[:event_name] != options[:event_name]
         return false if options[:event_type] && event[:event_type] != options[:event_type]

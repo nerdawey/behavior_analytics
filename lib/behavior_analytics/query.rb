@@ -132,7 +132,7 @@ module BehaviorAnalytics
     end
 
     def execute
-      raise Error, "Context must have tenant_id" unless @context&.valid?
+      raise Error, "Context must be valid (have at least tenant_id, user_id, or filters)" unless @context&.valid?
       
       # Merge metadata filters and other options
       final_options = @options.dup
@@ -146,7 +146,7 @@ module BehaviorAnalytics
     end
 
     def count
-      raise Error, "Context must have tenant_id" unless @context&.valid?
+      raise Error, "Context must be valid (have at least tenant_id, user_id, or filters)" unless @context&.valid?
       
       final_options = @options.dup
       final_options[:metadata_filters] = @metadata_filters unless @metadata_filters.empty?

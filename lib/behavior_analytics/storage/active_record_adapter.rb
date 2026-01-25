@@ -41,6 +41,9 @@ module BehaviorAnalytics
 
         query = build_base_query(context, options)
         
+        # If no tenant_id, query all events (for non-multi-tenant systems)
+        # This allows tracking without tenant isolation
+        
         # Apply metadata filters
         if options[:metadata_filters]
           options[:metadata_filters].each do |key, value|
@@ -140,6 +143,7 @@ module BehaviorAnalytics
       end
 
       def event_count(context, options = {})
+        context.validate!
         query = build_base_query(context, options)
         
         # Apply metadata filters
@@ -211,8 +215,17 @@ module BehaviorAnalytics
       def build_base_query(context, options)
         context.validate!
 
-        query = @model_class.where(tenant_id: context.tenant_id)
-        query = query.where(user_id: context.user_id) if context.user_id
+        # Support different business cases:
+        # - Multi-tenant: filter by tenant_id
+        # - Single-tenant: filter by user_id (tenant_id may be nil)
+        # - API-only: no filters required
+        query = @model_class.all
+        
+        if context.has_tenant?
+          query = query.where(tenant_id: context.tenant_id)
+        end
+        
+        query = query.where(user_id: context.user_id) if context.has_user?
         query = query.where(user_type: context.user_type) if context.user_type
 
         query = query.where("created_at >= ?", options[:since]) if options[:since]

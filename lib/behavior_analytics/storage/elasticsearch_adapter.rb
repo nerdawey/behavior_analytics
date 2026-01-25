@@ -125,11 +125,21 @@ module BehaviorAnalytics
       end
 
       def build_query(context, options)
-        must_clauses = [
-          { term: { tenant_id: context.tenant_id } }
-        ]
+        must_clauses = []
         
-        must_clauses << { term: { user_id: context.user_id } } if context.user_id
+        # Support different business cases:
+        # - Multi-tenant: filter by tenant_id
+        # - Single-tenant: filter by user_id (tenant_id may be nil)
+        # - API-only: no strict filters required
+        
+        if context.has_tenant?
+          must_clauses << { term: { tenant_id: context.tenant_id } }
+        end
+        
+        if context.has_user?
+          must_clauses << { term: { user_id: context.user_id } }
+        end
+        
         must_clauses << { term: { user_type: context.user_type } } if context.user_type
         must_clauses << { term: { event_name: options[:event_name] } } if options[:event_name]
         must_clauses << { term: { event_type: options[:event_type].to_s } } if options[:event_type]

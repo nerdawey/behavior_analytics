@@ -100,24 +100,96 @@ end
 
 ## Usage
 
+### Supported Business Cases
+
+The gem is flexible and supports different business scenarios:
+
+#### 1. Multi-Tenant Systems
+Track events with tenant isolation for SaaS applications:
+
+```ruby
+context = BehaviorAnalytics::Context.new(
+  tenant_id: "org_123",
+  user_id: "user_456",
+  user_type: "premium"
+)
+```
+
+#### 2. Single-Tenant Web Apps
+Track events for regular web applications without tenant concept:
+
+```ruby
+# Option A: Set default tenant (recommended)
+BehaviorAnalytics.configure do |config|
+  config.default_tenant_id = "global"
+end
+
+context = BehaviorAnalytics::Context.new(
+  user_id: current_user.id,
+  user_type: "admin"
+)
+
+# Option B: Track without tenant_id (uses session_id or user_id as identifier)
+context = BehaviorAnalytics::Context.new(
+  user_id: current_user.id
+)
+```
+
+#### 3. API-Only Tracking
+Track API calls without user context (for monitoring, analytics, etc.):
+
+```ruby
+# Track API calls directly without user context
+tracker.track_api_call(
+  context: BehaviorAnalytics::Context.new, # Empty context - uses session_id from request
+  method: "POST",
+  path: "/api/endpoint",
+  status_code: 200,
+  duration_ms: 150
+)
+
+# Or with minimal context
+context = BehaviorAnalytics::Context.new(
+  filters: { environment: "production", service: "api" }
+)
+```
+
+#### 4. Anonymous/Public Tracking
+Track events for anonymous users or public pages:
+
+```ruby
+context = BehaviorAnalytics::Context.new(
+  filters: { page: "homepage", referrer: request.referer }
+)
+
+tracker.track(
+  context: context,
+  event_name: "page_view",
+  metadata: { path: request.path }
+)
+```
+
 ### Basic Tracking
 
 ```ruby
 # Create a tracker
 tracker = BehaviorAnalytics.create_tracker
 
-# Create a context (multi-tenant)
+# Multi-tenant example
 context = BehaviorAnalytics::Context.new(
   tenant_id: "org_123",
   user_id: "user_456",
   user_type: "trial"
 )
 
-# Or for single-tenant systems (uses default_tenant_id)
+# Single-tenant example (with default tenant)
 context = BehaviorAnalytics::Context.new(
   user_id: "user_456",
   user_type: "trial"
 )
+
+# API-only example (no user context)
+context = BehaviorAnalytics::Context.new
 
 # Track a custom event
 tracker.track(
@@ -231,36 +303,73 @@ tracker = BehaviorAnalytics.create_tracker(
 
 ## Context
 
-The `Context` class encapsulates tracking context:
+The `Context` class encapsulates tracking context and is flexible to support different business cases:
 
-- `tenant_id` (optional) - Multi-tenant identifier. If not provided, uses `default_tenant_id` from configuration
-- `user_id` (optional) - User identifier
+- `tenant_id` (optional) - Multi-tenant identifier. Only required for multi-tenant systems
+- `user_id` (optional) - User identifier. Useful for user-based analytics
 - `user_type` (optional) - User type (e.g., "trial", "premium", "admin")
-- `filters` (optional) - Hash of custom filter criteria
+- `filters` (optional) - Hash of custom filter criteria for additional context
 
-### Single-Tenant Systems
+### Context Validation
 
-For systems that don't support multi-tenancy, you can set a default tenant ID:
+A context is valid if it has **at least one identifier**:
+- `tenant_id` (for multi-tenant systems)
+- `user_id` (for user-based tracking)
+- `filters` with identifying information (for anonymous/public tracking)
+- `session_id` (automatically added for API calls)
 
-```ruby
-BehaviorAnalytics.configure do |config|
-  config.default_tenant_id = "global" # or "default", "single", etc.
-  # ... other configuration
-end
-```
+This allows the gem to support:
+- ✅ Multi-tenant SaaS applications
+- ✅ Single-tenant web applications
+- ✅ API monitoring without user context
+- ✅ Anonymous/public page tracking
 
-Now you can track events without specifying a tenant_id:
+### Examples by Use Case
 
+**Multi-Tenant SaaS:**
 ```ruby
 context = BehaviorAnalytics::Context.new(
-  user_id: current_user.id
-  # tenant_id will automatically use "global"
+  tenant_id: "org_123",  # Required
+  user_id: "user_456",
+  user_type: "premium"
 )
+```
 
-tracker.track(
-  context: context,
-  event_name: "page_view"
+**Single-Tenant Web App:**
+```ruby
+# Set default tenant (optional but recommended)
+BehaviorAnalytics.configure do |config|
+  config.default_tenant_id = "global"
+end
+
+# Track with just user_id
+context = BehaviorAnalytics::Context.new(
+  user_id: current_user.id,
+  user_type: current_user.role
 )
+```
+
+**API-Only Tracking:**
+```ruby
+# Track API calls without user context
+context = BehaviorAnalytics::Context.new  # Empty context - session_id will be used
+tracker.track_api_call(
+  context: context,
+  method: "POST",
+  path: "/api/endpoint",
+  status_code: 200
+)
+```
+
+**Anonymous/Public Tracking:**
+```ruby
+context = BehaviorAnalytics::Context.new(
+  filters: { 
+    page_type: "public",
+    referrer: request.referer 
+  }
+)
+tracker.track(context: context, event_name: "page_view")
 ```
 
 ## Development

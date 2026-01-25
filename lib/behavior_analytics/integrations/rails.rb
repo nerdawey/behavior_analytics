@@ -87,7 +87,9 @@ module BehaviorAnalytics
 
       def should_track?
         context = resolve_tracking_context
-        return false unless context&.valid?
+        # Allow tracking even without context for API-only tracking
+        # Context validation will handle required fields
+        return false if context && !context.valid?
 
         # Check path whitelist/blacklist
         return false if path_blacklisted?
@@ -165,6 +167,9 @@ module BehaviorAnalytics
       ensure
         if should_track?
           context = resolve_tracking_context
+          # Create context if it doesn't exist (for API-only tracking)
+          context ||= Context.new(tenant_id: BehaviorAnalytics.configuration.default_tenant_id)
+          
           if context&.valid?
             duration_ms = ((Time.current - start_time) * 1000).to_i
 
