@@ -1,5 +1,9 @@
 # Behavior Analytics
 
+[![Gem Version](https://badge.fury.io/rb/behavior_analytics.svg)](https://badge.fury.io/rb/behavior_analytics)
+[![Ruby Version](https://img.shields.io/badge/ruby-%3E%3D%203.0.0-brightgreen)](https://www.ruby-lang.org/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 A comprehensive Ruby gem for tracking user behavior events with multi-tenant support, visit/session management, device detection, geographic analytics, and advanced querying capabilities with enterprise-grade features.
 
 ## Features
@@ -43,10 +47,18 @@ A comprehensive Ruby gem for tracking user behavior events with multi-tenant sup
 
 ## Installation
 
+### Requirements
+
+- Ruby >= 3.0.0
+- Rails >= 6.0 (for Rails integration)
+- ActiveSupport >= 6.0
+
+### Install via Bundler
+
 Add this line to your application's Gemfile:
 
 ```ruby
-gem 'behavior_analytics'
+gem 'behavior_analytics', '~> 2.2'
 ```
 
 And then execute:
@@ -55,11 +67,17 @@ And then execute:
 $ bundle install
 ```
 
-Or install it yourself as:
+### Install via RubyGems
+
+Or install it directly:
 
 ```bash
 $ gem install behavior_analytics
 ```
+
+### Current Version
+
+The latest stable version is **2.2.2**. See [CHANGELOG.md](CHANGELOG.md) for version history.
 
 ## Rails Setup
 
@@ -73,6 +91,8 @@ This will:
 - Create migrations for the `behavior_events` and `behavior_visits` tables
 - Create an initializer at `config/initializers/behavior_analytics.rb`
 - Create models at `app/models/behavior_analytics_event.rb` and `app/models/behavior_analytics_visit.rb`
+
+**Note**: If you're upgrading from v2.1.x or earlier, you'll need to run the new migrations for visit tracking features.
 
 ### 2. Run the migrations
 
@@ -117,12 +137,15 @@ BehaviorAnalytics.configure do |config|
     time_in_trial: 0.1
   }
 
-  # Visit/Session Management
-  config.track_visits = true                    # Enable visit tracking
+  # Visit/Session Management (v2.2+)
+  config.track_visits = true                    # Enable visit tracking (requires migrations)
   config.visit_duration = 30.minutes            # Visit expires after 30 min of inactivity
   config.track_device_info = true               # Auto-detect device, browser, OS
   config.track_geolocation = true               # Auto-detect country/city from IP
   config.device_detector = :simple              # :simple, :browser, or :user_agent_parser
+  
+  # Note: For better device detection, add 'browser' or 'user_agent_parser' gem
+  # For geolocation, add 'geocoder' gem
 
   # Data Retention
   config.visit_retention_days = 90              # Keep visits for 90 days
@@ -167,9 +190,9 @@ Or use the inline script generator:
 
 ## Usage
 
-### Simplified API
+### Simplified API (v2.2+)
 
-The gem provides a simplified API for easy tracking:
+The gem provides a simplified API for easy tracking without needing to create context objects manually:
 
 ```ruby
 # Simple event tracking with automatic context resolution
@@ -556,9 +579,9 @@ visit_events = query
   .execute
 ```
 
-### JavaScript Client
+### JavaScript Client (v2.2+)
 
-The JavaScript client provides automatic frontend tracking:
+The JavaScript client provides automatic frontend tracking. The client file is included in the gem at `vendor/assets/javascripts/behavior_analytics.js`:
 
 ```javascript
 // Automatic tracking (enabled by default)
